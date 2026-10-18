@@ -90,7 +90,12 @@ class MaterialRepository:
     @staticmethod
     def list_materials_by_course(course_code: str) -> List[MaterialInDB]:
         """List all materials associated with a specific course."""
-        return MaterialRepository.list_materials(course_code=course_code)
+        collection = get_materials_collection()
+        if collection is None:
+            return []
+
+        cursor = collection.find({"course_code": course_code.strip().upper()}).sort("created_at", -1)
+        return [_doc_to_material(doc) for doc in cursor]
 
     @staticmethod
     def update_material_status(

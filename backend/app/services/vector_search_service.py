@@ -22,7 +22,7 @@ class VectorSearchService:
     """Service providing semantic similarity search with strict course and syllabus metadata filtering."""
 
     @staticmethod
-    def search(request: VectorSearchRequest) -> VectorSearchResponse:
+    def search(request: VectorSearchRequest, require_atlas: bool = False) -> VectorSearchResponse:
         """
         Execute semantic similarity search against either course content chunks or past exam teaching questions.
         """
@@ -46,6 +46,7 @@ class VectorSearchService:
                 topic_id=request.topic_id,
                 subtopic_id=request.subtopic_id,
                 limit=request.limit,
+                require_atlas=require_atlas,
             )
 
             for chunk, score in chunk_matches:

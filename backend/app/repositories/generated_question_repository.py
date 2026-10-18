@@ -44,6 +44,28 @@ class GeneratedQuestionRepository:
             return None
 
     @staticmethod
+    def save_generated_questions_batch(questions_in: List[GeneratedQuestionCreate]) -> List[GeneratedQuestionInDB]:
+        """Persist a validated batch of generated questions."""
+        collection = get_generated_questions_collection()
+        if collection is None or not questions_in:
+            return []
+
+        now = datetime.now(timezone.utc)
+        docs = []
+        for question in questions_in:
+            doc = question.model_dump()
+            doc["created_at"] = now
+            docs.append(doc)
+
+        result = collection.insert_many(docs, ordered=True)
+        saved = []
+        for doc, inserted_id in zip(docs, result.inserted_ids):
+            doc["id"] = str(inserted_id)
+            doc.pop("_id", None)
+            saved.append(GeneratedQuestionInDB(**doc))
+        return saved
+
+    @staticmethod
     def get_generated_question(question_id: str) -> Optional[GeneratedQuestionInDB]:
         """Fetch a generated question by ObjectId."""
         collection = get_generated_questions_collection()
@@ -69,6 +91,16 @@ class GeneratedQuestionRepository:
             .limit(limit)
         )
         return [_doc_to_gq(doc) for doc in cursor]
+
+    @staticmethod
+    def delete_generated_questions_by_course(course_code: str) -> int:
+        """Delete generated HOTS questions belonging to a course."""
+        collection = get_generated_questions_collection()
+        if collection is None:
+            return 0
+
+        result = collection.delete_many({"course_code": course_code.strip().upper()})
+        return result.deleted_count
 
     @staticmethod
     def update_validation_status(

@@ -7,6 +7,7 @@ import { CourseMaterials } from './pages/CourseMaterials';
 import { DeveloperLayout } from './components/layout/DeveloperLayout';
 import { StudentCatalog } from './pages/StudentCatalog';
 import { StudentCourse } from './pages/StudentCourse';
+import { QuestionGeneration } from './pages/QuestionGeneration';
 import { CoursesPage } from './pages/CoursesPage';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { ProcessingPage } from './pages/ProcessingPage';
@@ -21,6 +22,7 @@ function App() {
         {/* Public student browsing (the backend does not yet support generation). */}
         <Route path="/" element={<StudentCatalog />} />
         <Route path="/course/:courseCode" element={<StudentCourse />} />
+        <Route path="/generate" element={<QuestionGeneration />} />
 
         {/* Public developer login */}
         <Route path="/login" element={<DeveloperLogin />} />

@@ -18,3 +18,8 @@ export const createCourse = async (courseData) => {
   });
   return response.data;
 };
+
+export const deleteCourse = async (courseCode) => {
+  const response = await apiClient.delete(`/dev/courses/${encodeURIComponent(courseCode)}`);
+  return response.data;
+};

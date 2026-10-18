@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     # LLM & AI Services
     GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL_NAME: str = "gemini-3.8-flash"
 
     # Developer Authentication
     JWT_SECRET: str = "change_this_secret_in_production"

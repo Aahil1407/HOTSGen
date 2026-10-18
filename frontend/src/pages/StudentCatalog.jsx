@@ -33,7 +33,7 @@ export const StudentCatalog = () => {
           <span className="student-brand-icon"><BookOpen size={19} /></span>
           <span><strong>HOTS</strong><small>Study workspace</small></span>
         </Link>
-        <div className="student-header-actions"><ThemeToggle /><Link to="/login" className="student-admin-link"><Shield size={15} /> Developer portal</Link></div>
+        <div className="student-header-actions"><ThemeToggle /><Link to="/generate" className="student-admin-link"><Sparkles size={15} /> Question Generation</Link><Link to="/login" className="student-admin-link"><Shield size={15} /> Developer portal</Link></div>
       </header>
 
       <main className="student-main">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Layers3, ListTree } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Layers3, ListTree, Sparkles } from 'lucide-react';
 import { getPublicCourseTopics } from '../api/publicCourses';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -26,7 +26,7 @@ export const StudentCourse = () => {
     <div className="student-shell min-h-screen">
       <header className="student-topbar">
         <Link to="/" className="student-brand"><span className="student-brand-icon"><BookOpen size={19} /></span><span><strong>HOTS</strong><small>Study workspace</small></span></Link>
-        <div className="student-header-actions"><ThemeToggle /><Link to="/login" className="student-admin-link">Developer portal</Link></div>
+        <div className="student-header-actions"><ThemeToggle /><Link to={`/generate?course=${encodeURIComponent(courseCode)}`} className="student-admin-link"><Sparkles size={15} /> Question Generation</Link><Link to="/login" className="student-admin-link">Developer portal</Link></div>
       </header>
       <main className="student-main student-detail-main">
         <Link to="/" className="student-back"><ArrowLeft size={16} /> All courses</Link>
@@ -38,6 +38,7 @@ export const StudentCourse = () => {
             <h1>{course.course_name}</h1>
             <p>{course.description || 'Explore the units and topics in this course syllabus.'}</p>
             <div className="student-course-facts"><span><Layers3 size={16} /> {course.units?.length || 0} units</span><span><ListTree size={16} /> {(course.units || []).reduce((sum, unit) => sum + (unit.topics?.length || 0), 0)} topics</span></div>
+            <Link to={`/generate?course=${encodeURIComponent(courseCode)}`} className="question-course-cta"><Sparkles size={16} /> Generate practice questions</Link>
           </section>
           <section className="student-syllabus">
             <div className="student-section-heading"><div><p className="student-eyebrow">COURSE OUTLINE</p><h2>Syllabus</h2></div></div>
