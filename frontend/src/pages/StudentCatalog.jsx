@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Search, Shield, Sparkles } from 'lucide-react';
 import { getPublicCourses } from '../api/publicCourses';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 export const StudentCatalog = () => {
   const [courses, setCourses] = useState([]);
@@ -32,7 +33,7 @@ export const StudentCatalog = () => {
           <span className="student-brand-icon"><BookOpen size={19} /></span>
           <span><strong>HOTS</strong><small>Study workspace</small></span>
         </Link>
-        <Link to="/login" className="student-admin-link"><Shield size={15} /> Developer portal</Link>
+        <div className="student-header-actions"><ThemeToggle /><Link to="/login" className="student-admin-link"><Shield size={15} /> Developer portal</Link></div>
       </header>
 
       <main className="student-main">

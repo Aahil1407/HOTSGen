@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, Layers3, ListTree } from 'lucide-react';
 import { getPublicCourseTopics } from '../api/publicCourses';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 export const StudentCourse = () => {
   const { courseCode } = useParams();
@@ -25,7 +26,7 @@ export const StudentCourse = () => {
     <div className="student-shell min-h-screen">
       <header className="student-topbar">
         <Link to="/" className="student-brand"><span className="student-brand-icon"><BookOpen size={19} /></span><span><strong>HOTS</strong><small>Study workspace</small></span></Link>
-        <Link to="/login" className="student-admin-link">Developer portal</Link>
+        <div className="student-header-actions"><ThemeToggle /><Link to="/login" className="student-admin-link">Developer portal</Link></div>
       </header>
       <main className="student-main student-detail-main">
         <Link to="/" className="student-back"><ArrowLeft size={16} /> All courses</Link>

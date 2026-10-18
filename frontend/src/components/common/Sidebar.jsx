@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, LogOut, Folder, RefreshCw, Menu, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from './ThemeToggle';
 
 export const Sidebar = () => {
   const { logout, user } = useAuth();
@@ -23,6 +24,7 @@ export const Sidebar = () => {
         <button className="admin-collapse" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}>
           {collapsed ? <Menu size={20} /> : <ChevronLeft size={19} />}
         </button>
+        <ThemeToggle className="admin-theme-toggle" />
       </div>
       <p className="admin-nav-label">Workspace</p>
       <nav className="admin-nav">

@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { DeveloperLogin } from '../pages/DeveloperLogin';
 import { AuthProvider } from '../context/AuthContext';
+import { ThemeProvider } from '../context/ThemeContext';
 import * as authApi from '../api/auth';
 
 vi.mock('../api/auth', () => ({
@@ -16,14 +17,18 @@ describe('DeveloperLogin Component', () => {
     localStorage.clear();
   });
 
-  it('renders login form with username, password fields and login button on white background', () => {
-    render(
-      <BrowserRouter>
+  const renderLogin = () => render(
+    <BrowserRouter>
+      <ThemeProvider>
         <AuthProvider>
           <DeveloperLogin />
         </AuthProvider>
-      </BrowserRouter>
-    );
+      </ThemeProvider>
+    </BrowserRouter>
+  );
+
+  it('renders login form with username, password fields and login button on white background', () => {
+    renderLogin();
 
     expect(screen.getByText(/Developer Portal/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/admin/i)).toBeInTheDocument();
@@ -36,13 +41,7 @@ describe('DeveloperLogin Component', () => {
       response: { data: { detail: 'Invalid username or password' } },
     });
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <DeveloperLogin />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    renderLogin();
 
     const usernameInput = screen.getByPlaceholderText(/admin/i);
     const passwordInput = screen.getByPlaceholderText(/••••••••••••/i);
@@ -63,13 +62,7 @@ describe('DeveloperLogin Component', () => {
       token_type: 'bearer',
     });
 
-    render(
-      <BrowserRouter>
-        <AuthProvider>
-          <DeveloperLogin />
-        </AuthProvider>
-      </BrowserRouter>
-    );
+    renderLogin();
 
     const usernameInput = screen.getByPlaceholderText(/admin/i);
     const passwordInput = screen.getByPlaceholderText(/••••••••••••/i);

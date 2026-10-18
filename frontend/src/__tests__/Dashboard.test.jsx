@@ -6,6 +6,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { AuthProvider } from '../context/AuthContext';
 import * as coursesApi from '../api/courses';
 import * as materialsApi from '../api/materials';
+import * as embeddingsApi from '../api/embeddings';
 
 vi.mock('../api/courses', () => ({
   getCourses: vi.fn(),
@@ -16,9 +17,15 @@ vi.mock('../api/materials', () => ({
   getMaterials: vi.fn(),
 }));
 
+vi.mock('../api/embeddings', () => ({
+  getEmbeddingStatus: vi.fn(),
+}));
+
 describe('Dashboard Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    materialsApi.getMaterials.mockResolvedValue([]);
+    embeddingsApi.getEmbeddingStatus.mockResolvedValue(null);
   });
 
   it('renders loading state initially', () => {
@@ -32,10 +39,10 @@ describe('Dashboard Component', () => {
       </BrowserRouter>
     );
 
-    expect(screen.getByText(/Loading course catalog/i)).toBeInTheDocument();
+    expect(screen.getByText(/Loading workspace data/i)).toBeInTheDocument();
   });
 
-  it('renders "No courses available" empty state when no courses exist', async () => {
+  it('renders the empty recent courses state when no courses exist', async () => {
     coursesApi.getCourses.mockResolvedValueOnce([]);
 
     render(
@@ -47,8 +54,8 @@ describe('Dashboard Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/No courses available/i)).toBeInTheDocument();
-      expect(screen.getByText(/Get started by registering a new course/i)).toBeInTheDocument();
+      expect(screen.getByText(/No courses yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/No courses yet\. Create a course to get started/i)).toBeInTheDocument();
     });
   });
 
@@ -85,7 +92,7 @@ describe('Dashboard Component', () => {
     });
   });
 
-  it('opens Add Course modal when "Add Course" button is clicked', async () => {
+  it('opens Add Course modal when the create course button is clicked', async () => {
     coursesApi.getCourses.mockResolvedValueOnce([]);
 
     render(
@@ -97,10 +104,10 @@ describe('Dashboard Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/No courses available/i)).toBeInTheDocument();
+      expect(screen.getByText(/No courses yet/i)).toBeInTheDocument();
     });
 
-    const addBtn = screen.getAllByRole('button', { name: /Add Course/i })[0];
+    const addBtn = screen.getByRole('button', { name: /Create course/i });
     fireEvent.click(addBtn);
 
     expect(screen.getByText(/Add New Course/i)).toBeInTheDocument();

@@ -11,11 +11,13 @@ import { CoursesPage } from './pages/CoursesPage';
 import { MaterialsPage } from './pages/MaterialsPage';
 import { ProcessingPage } from './pages/ProcessingPage';
 import { MaterialProcessingDetail } from './pages/MaterialProcessingDetail';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   return (
-    <AuthProvider>
-      <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+       <Routes>
         {/* Public student browsing (the backend does not yet support generation). */}
         <Route path="/" element={<StudentCatalog />} />
         <Route path="/course/:courseCode" element={<StudentCourse />} />
@@ -31,6 +33,7 @@ function App() {
             </RequireAuth>
           }
         >
+          <Route path="/admin" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/materials" element={<MaterialsPage />} />
@@ -42,8 +45,9 @@ function App() {
         {/* Keep the developer portal available without making it the student home. */}
         <Route path="/dev" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AuthProvider>
+       </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
