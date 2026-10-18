@@ -34,3 +34,13 @@ export const getPipelineStatus = async (materialId) => {
   const response = await apiClient.get(`/dev/materials/${materialId}/pipeline-status`);
   return response.data;
 };
+
+export const getMaterialChunks = async (materialId) => {
+  const response = await apiClient.get(`/dev/materials/${materialId}/chunks`);
+  return response.data;
+};
+
+export const getMaterialAlignment = async (materialId) => {
+  const response = await apiClient.get(`/dev/materials/${materialId}/alignment`);
+  return response.data;
+};

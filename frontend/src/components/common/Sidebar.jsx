@@ -1,67 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookMarked, LogOut, Layers } from 'lucide-react';
+import { LayoutDashboard, BookOpen, LogOut, Folder, RefreshCw, Menu, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = () => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
+  const [collapsed, setCollapsed] = useState(false);
   const navItems = [
-    {
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      name: 'Courses',
-      path: '/courses',
-      icon: BookMarked,
-    },
+    { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Courses', path: '/courses', icon: BookOpen },
+    { name: 'Materials', path: '/materials', icon: Folder },
+    { name: 'Processing', path: '/processing', icon: RefreshCw },
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] flex flex-col justify-between p-4 shrink-0">
-      <div className="space-y-6">
-        <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          Developer Navigation
-        </div>
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`
-                }
-              >
-                <Icon size={18} />
-                <span>{item.name}</span>
-              </NavLink>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="pt-4 border-t border-slate-100">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
-        >
-          <LogOut size={18} />
-          <span>Logout</span>
+    <aside className={`admin-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
+      <div className="admin-side-top">
+        <button className="admin-brand" onClick={() => navigate('/dashboard')} title="HOTS Admin">
+          <span className="admin-brand-mark">H</span><span className="admin-brand-name">HOTS <b>Admin</b></span>
         </button>
+        <button className="admin-collapse" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}>
+          {collapsed ? <Menu size={20} /> : <ChevronLeft size={19} />}
+        </button>
+      </div>
+      <p className="admin-nav-label">Workspace</p>
+      <nav className="admin-nav">
+        {navItems.map(({ name, path, icon: Icon }) => <NavLink key={path} to={path} title={collapsed ? name : undefined} className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}>
+          <Icon size={19} /><span>{name}</span>
+        </NavLink>)}
+      </nav>
+      <div className="admin-sidebar-bottom">
+        <div className="admin-user"><span className="admin-avatar">{(user || 'A').slice(0, 1).toUpperCase()}</span><span className="admin-user-copy"><b>{user || 'Administrator'}</b><small>Developer</small></span></div>
+        <button className="admin-nav-link admin-logout" onClick={() => { logout(); navigate('/login'); }} title={collapsed ? 'Sign out' : undefined}><LogOut size={18} /><span>Sign out</span></button>
       </div>
     </aside>
   );

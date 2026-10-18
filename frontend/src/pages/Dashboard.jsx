@@ -1,148 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Activity, AlertCircle, ArrowRight, FileUp, Plus, RefreshCw } from 'lucide-react';
 import { getCourses } from '../api/courses';
 import { getMaterials } from '../api/materials';
-import { CourseCard } from '../components/dashboard/CourseCard';
+import { getEmbeddingStatus } from '../api/embeddings';
 import { AddCourseModal } from '../components/dashboard/AddCourseModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { Plus, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
+
+const CATEGORIES = ['syllabus', 'lecture_material', 'reference_book', 'exam_paper'];
+const courseReady = (items) => CATEGORIES.every((type) => {
+  const category = items.filter((item) => item.source_type === type);
+  return category.length > 0 && category.every((item) => ['processed', 'completed'].includes(item.processing_status));
+});
 
 export const Dashboard = () => {
   const [courses, setCourses] = useState([]);
-  const [materialsByCourse, setMaterialsByCourse] = useState({});
+  const [materials, setMaterials] = useState([]);
+  const [embeddingStatus, setEmbeddingStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError(null);
+  const load = async () => {
+    setLoading(true); setError('');
     try {
-      const coursesData = await getCourses();
-      setCourses(coursesData || []);
-
-      // Fetch materials for each course to calculate category readiness
-      if (coursesData && coursesData.length > 0) {
-        const materialsMap = {};
-        await Promise.all(
-          coursesData.map(async (course) => {
-            try {
-              const mats = await getMaterials(course.course_code);
-              materialsMap[course.course_code] = mats || [];
-            } catch (err) {
-              materialsMap[course.course_code] = [];
-            }
-          })
-        );
-        setMaterialsByCourse(materialsMap);
-      }
-      setLoading(false);
-    } catch (err) {
-      setLoading(false);
-      setError(err.response?.data?.detail || 'Failed to fetch course catalog.');
-    }
+      const [courseRows, materialRows] = await Promise.all([getCourses(), getMaterials()]);
+      setCourses(courseRows || []); setMaterials(materialRows || []);
+      try { setEmbeddingStatus(await getEmbeddingStatus()); } catch { setEmbeddingStatus(null); }
+    } catch (err) { setError(err.response?.data?.detail || 'Could not load dashboard data.'); }
+    finally { setLoading(false); }
   };
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const byCourse = useMemo(() => Object.fromEntries(courses.map((course) => [course.course_code, materials.filter((item) => item.course_code === course.course_code)])), [courses, materials]);
+  const attentionCount = materials.filter((item) => ['failed', 'pending'].includes(item.processing_status)).length;
+  const activeCount = materials.filter((item) => ['uploaded', 'processing'].includes(item.processing_status)).length;
+  const completedCount = materials.filter((item) => ['processed', 'completed'].includes(item.processing_status)).length;
+  const recentCourses = [...courses].sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0)).slice(0, 5);
+  const created = (course) => { setCourses((items) => [course, ...items]); };
 
-  const handleCourseCreated = (newCourse) => {
-    setCourses((prev) => [newCourse, ...prev]);
-    setMaterialsByCourse((prev) => ({ ...prev, [newCourse.course_code]: [] }));
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Course Knowledge Base</h2>
-          <p className="text-sm text-slate-500 font-medium mt-1">
-            Manage course syllabi, documents, exam papers, and inspect HOTS question generation readiness.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchDashboardData}
-            disabled={loading}
-            className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-            title="Refresh dashboard"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold shadow-sm transition-all"
-          >
-            <Plus size={16} />
-            <span>Add Course</span>
-          </button>
-        </div>
+  return <div className="admin-page">
+    <div className="admin-page-heading"><div><p className="admin-kicker">Workspace overview</p><h1>Good morning, Admin</h1><p>Manage courses, learning materials and the HOTS knowledge base.</p></div><div className="admin-heading-actions"><button className="admin-icon-button" onClick={load} disabled={loading} title="Refresh"><RefreshCw size={17} className={loading ? 'animate-spin' : ''} /></button><button className="admin-primary" onClick={() => setIsAddModalOpen(true)}><Plus size={16} /> Create course</button></div></div>
+    {error && <div className="admin-alert"><AlertCircle size={17} />{error}<button onClick={load}>Retry</button></div>}
+    {loading ? <div className="admin-loading"><LoadingSpinner size={28} />Loading workspace data…</div> : <>
+      <div className="admin-stat-grid">
+        <div className="admin-stat-card"><span>Total Courses <i className="dot coral" /></span><strong>{courses.length}</strong><small>Registered courses</small></div>
+        <div className="admin-stat-card"><span>Materials <i className="dot teal" /></span><strong>{materials.length}</strong><small>Uploaded documents</small></div>
+        <div className="admin-stat-card"><span>Embeddings stored <i className="dot teal" /></span><strong>{embeddingStatus ? embeddingStatus.chunks_with_embeddings + embeddingStatus.questions_with_embeddings : '—'}</strong><small>{embeddingStatus ? `of ${embeddingStatus.total_chunks + embeddingStatus.total_questions} indexed records` : 'Coverage unavailable'}</small></div>
+        <div className="admin-stat-card"><span>Needs Attention <i className="dot red" /></span><strong>{attentionCount}</strong><small>Pending or failed materials</small></div>
       </div>
-
-      {/* Error Alert */}
-      {error && (
-        <div className="flex items-center justify-between p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium">
-          <div className="flex items-center gap-2">
-            <AlertCircle size={18} className="shrink-0" />
-            <span>{error}</span>
-          </div>
-          <button
-            onClick={fetchDashboardData}
-            className="px-3 py-1 bg-rose-100 hover:bg-rose-200 rounded-lg text-xs font-semibold text-rose-800 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
-          <LoadingSpinner size={32} />
-          <p className="text-sm font-medium">Loading course catalog...</p>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && courses.length === 0 && !error && (
-        <div className="py-20 px-6 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50/50 flex flex-col items-center justify-center max-w-lg mx-auto">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-4 shadow-sm">
-            <BookOpen size={24} />
-          </div>
-          <h3 className="text-base font-semibold text-slate-900">No courses available</h3>
-          <p className="text-xs text-slate-500 max-w-xs mt-1 mb-6">
-            Get started by registering a new course to upload syllabi, notes, and past examination papers.
-          </p>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold shadow-sm transition-all"
-          >
-            <Plus size={16} />
-            <span>Add Your First Course</span>
-          </button>
-        </div>
-      )}
-
-      {/* Course Grid: Square Cards */}
-      {!loading && courses.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {courses.map((course) => (
-            <CourseCard
-              key={course.course_code}
-              course={course}
-              materials={materialsByCourse[course.course_code] || []}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Add Course Modal */}
-      <AddCourseModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onCourseCreated={handleCourseCreated}
-      />
-    </div>
-  );
+      <div className="admin-dashboard-grid">
+        <section className="admin-panel admin-recent-panel"><div className="admin-panel-heading"><h2>Recent Courses</h2><Link to="/courses">View all <ArrowRight size={14} /></Link></div>
+          {!recentCourses.length ? <div className="admin-empty">No courses yet. Create a course to get started.</div> : <div className="admin-recent-list">{recentCourses.map((course) => {
+            const courseMaterials = byCourse[course.course_code] || [];
+            const failed = courseMaterials.some((item) => item.processing_status === 'failed');
+            const processing = courseMaterials.some((item) => ['uploaded', 'processing', 'pending'].includes(item.processing_status));
+            const status = failed ? 'Needs attention' : processing ? 'Processing' : courseReady(courseMaterials) ? 'Complete' : 'Incomplete';
+            const tone = failed ? 'red' : processing ? 'amber' : status === 'Complete' ? 'teal' : 'muted';
+            return <Link to={`/courses/${encodeURIComponent(course.course_code)}`} className="admin-recent-row" key={course.course_code}><b className="admin-recent-code">{course.course_code}</b><span className="admin-recent-title"><strong>{course.course_name}</strong><small>{courseMaterials.length} materials · Updated {course.updated_at ? new Date(course.updated_at).toLocaleDateString() : 'recently'}</small></span><span className={`admin-status-dot ${tone}`} /> <span className="admin-row-status">{status}</span></Link>;
+          })}</div>}
+        </section>
+        <section className="admin-panel admin-health-panel"><h2>Material processing</h2><p className="admin-panel-subtitle">Based on current material statuses</p>
+          <div className="admin-health-row"><i className="dot teal"/><b>Completed</b><strong>{completedCount}</strong><span>Processed</span></div>
+          <div className="admin-health-row"><i className="dot amber"/><b>In progress</b><strong>{activeCount}</strong><span>Uploaded / processing</span></div>
+          <div className="admin-health-row"><i className="dot red"/><b>Needs attention</b><strong>{attentionCount}</strong><span>Pending / failed</span></div>
+        </section>
+        <section className="admin-panel admin-tasks-panel"><p className="admin-panel-subtitle">Common administrator tasks</p>
+          <button className="admin-task-row" onClick={() => setIsAddModalOpen(true)}><span className="admin-task-icon coral-bg"><Plus size={18}/></span><span><b>Create a new course</b><small>Set up course details and start material ingestion.</small></span><ArrowRight size={16}/></button>
+          <Link to="/materials" className="admin-task-row"><span className="admin-task-icon teal-bg"><FileUp size={18}/></span><span><b>Upload materials</b><small>Add syllabus, lectures, references or exam papers.</small></span><ArrowRight size={16}/></Link>
+          <Link to="/processing" className="admin-task-row"><span className="admin-task-icon amber-bg"><Activity size={18}/></span><span><b>Review processing</b><small>Inspect ingestion stages and material status.</small></span><ArrowRight size={16}/></Link>
+        </section>
+        <section className="admin-panel admin-status-panel"><h2>Backend data</h2><p className="admin-panel-subtitle">Records available through current APIs</p><div className="admin-health-row"><i className="dot teal"/><b>Course records</b><span>{courses.length}</span></div><div className="admin-health-row"><i className="dot teal"/><b>Material records</b><span>{materials.length}</span></div><div className="admin-health-row"><i className="dot teal"/><b>Pipeline status</b><span>Per material</span></div></section>
+      </div>
+    </>}
+    <AddCourseModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onCourseCreated={created} />
+  </div>;
 };

@@ -30,7 +30,7 @@ export const CourseReadiness = ({ materials = [], courseCode }) => {
       <div className="flex items-center justify-between pb-4 border-b border-slate-100">
         <div>
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">Course Status</h3>
-          <p className="text-xs text-slate-500 font-medium">Readiness for HOTS Question Generation</p>
+          <p className="text-xs text-slate-500 font-medium">Required material categories and processing states</p>
         </div>
         <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
           {completedCount} of 4 categories
@@ -67,7 +67,7 @@ export const CourseReadiness = ({ materials = [], courseCode }) => {
           <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
             <div className="flex items-center gap-2.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-sm font-semibold">Ready for Question Generation</span>
+            <span className="text-sm font-semibold">All material categories processed</span>
             </div>
             <Sparkles size={18} className="text-emerald-600 shrink-0" />
           </div>
@@ -78,7 +78,7 @@ export const CourseReadiness = ({ materials = [], courseCode }) => {
               <span className="text-sm font-semibold">Course Incomplete</span>
             </div>
             <span className="text-xs font-medium text-amber-700">
-              {completedCount} of 4 required categories available
+              {completedCount} of 4 material categories processed
             </span>
           </div>
         )}
