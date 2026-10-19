@@ -16,7 +16,7 @@ describe('CourseReadiness Component', () => {
 
     expect(screen.getByText(/Course Status/i)).toBeInTheDocument();
     expect(screen.getByText(/4 of 4 categories/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ready for Question Generation/i)).toBeInTheDocument();
+    expect(screen.getByText(/All material categories processed/i)).toBeInTheDocument();
   });
 
   it('displays incomplete status when material categories are missing', () => {

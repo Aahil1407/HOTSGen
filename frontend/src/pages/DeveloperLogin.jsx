@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Lock, User, BookOpen, AlertCircle } from 'lucide-react';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 export const DeveloperLogin = () => {
   const [username, setUsername] = useState('');
@@ -36,7 +37,8 @@ export const DeveloperLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col justify-center items-center px-4 py-12 font-sans">
+    <div className="developer-login-shell min-h-screen bg-white flex flex-col justify-center items-center px-4 py-12 font-sans">
+      <ThemeToggle className="login-theme-toggle" />
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">

@@ -16,6 +16,11 @@ from app.models.syllabus_alignment import ScopeStatus
 logger = logging.getLogger(__name__)
 
 
+class AtlasVectorSearchUnavailableError(Exception):
+    """Raised when Atlas Vector Search cannot run (for example, index is absent)."""
+    pass
+
+
 def _doc_to_chunk(doc: Dict[str, Any]) -> ChunkInDB:
     """Convert raw MongoDB document to ChunkInDB model, mapping _id to id."""
     doc_copy = dict(doc)
@@ -26,6 +31,18 @@ def _doc_to_chunk(doc: Dict[str, Any]) -> ChunkInDB:
 
 class ChunkRepository:
     """Data access repository for RAG Chunks."""
+
+    @staticmethod
+    def list_course_codes_with_embeddings() -> List[str]:
+        """Return courses with at least one in-syllabus chunk embedding."""
+        collection = get_chunks_collection()
+        if collection is None:
+            raise RuntimeError("MongoDB chunks collection is unavailable.")
+        return sorted(collection.distinct("course_code", {
+            "scope_status": "in_syllabus",
+            "embedding": {"$type": "array"},
+            "embedding.0": {"$exists": True},
+        }))
 
     @staticmethod
     def create_chunk(chunk_in: ChunkCreate) -> Optional[ChunkInDB]:
@@ -189,6 +206,7 @@ class ChunkRepository:
         topic_id: Optional[str] = None,
         subtopic_id: Optional[str] = None,
         limit: int = 5,
+        require_atlas: bool = False,
     ) -> List[Tuple[ChunkInDB, float]]:
         """
         Execute vector similarity search on course chunks with metadata filtering.
@@ -196,6 +214,8 @@ class ChunkRepository:
         """
         collection = get_chunks_collection()
         if collection is None:
+            if require_atlas:
+                raise AtlasVectorSearchUnavailableError("MongoDB chunks collection is unavailable.")
             return []
 
         normalized_code = course_code.strip().upper()
@@ -212,6 +232,22 @@ class ChunkRepository:
 
         # 1. Attempt Atlas $vectorSearch aggregation
         settings = get_settings()
+        if require_atlas:
+            list_indexes = getattr(collection, "list_search_indexes", None)
+            if callable(list_indexes):
+                try:
+                    search_indexes = list(list_indexes())
+                except Exception as e:
+                    raise AtlasVectorSearchUnavailableError(
+                        "Could not verify Atlas Vector Search indexes. Check that the database user "
+                        "can inspect search indexes and that the chunks collection is available."
+                    ) from e
+                if not any(index.get("name") == settings.VECTOR_SEARCH_INDEX_NAME for index in search_indexes):
+                    raise AtlasVectorSearchUnavailableError(
+                        f"Atlas Vector Search index '{settings.VECTOR_SEARCH_INDEX_NAME}' is missing on the "
+                        "chunks collection. Create the configured vector index before generating questions."
+                    )
+
         pipeline = [
             {
                 "$vectorSearch": {
@@ -246,7 +282,15 @@ class ChunkRepository:
             if results:
                 return results
         except Exception as e:
+            if require_atlas:
+                raise AtlasVectorSearchUnavailableError(
+                    "Atlas Vector Search failed. Verify the configured vector search index "
+                    f"'{settings.VECTOR_SEARCH_INDEX_NAME}' exists on the chunks collection."
+                ) from e
             logger.debug(f"Atlas $vectorSearch not supported on connection ({type(e).__name__}); using cosine fallback.")
+
+        if require_atlas:
+            return []
 
         # 2. In-memory / local fallback ranking for testing & local development
         cursor = collection.find(filter_doc)

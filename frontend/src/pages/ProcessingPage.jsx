@@ -1,0 +1,19 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Activity, AlertCircle, Search } from 'lucide-react';
+import { getMaterials } from '../api/materials';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { StatusBadge } from '../components/common/StatusBadge';
+
+export const ProcessingPage = () => {
+  const [materials, setMaterials] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [query, setQuery] = useState(''); const [filter, setFilter] = useState('active');
+  useEffect(() => { getMaterials().then(setMaterials).catch((err) => setError(err.response?.data?.detail || 'Could not load processing records.')).finally(() => setLoading(false)); }, []);
+  const rows = useMemo(() => materials.filter((item) => `${item.original_filename} ${item.course_code}`.toLowerCase().includes(query.toLowerCase())).filter((item) => filter === 'all' || (filter === 'active' && ['uploaded','processing','pending'].includes(item.processing_status)) || (filter === 'failed' && item.processing_status === 'failed') || (filter === 'completed' && ['processed','completed'].includes(item.processing_status))), [materials, query, filter]);
+  const counts = { active: materials.filter((item) => ['uploaded','processing','pending'].includes(item.processing_status)).length, failed: materials.filter((item) => item.processing_status === 'failed').length, completed: materials.filter((item) => ['processed','completed'].includes(item.processing_status)).length };
+  return <div className="admin-page">
+    <div className="admin-page-heading"><div><p className="admin-kicker">Workspace / Ingestion</p><h1>Processing</h1><p>Track material ingestion and inspect pipeline stages.</p></div></div>
+    <div className="admin-stat-grid admin-processing-stats"><div className="admin-stat-card"><span>In progress <i className="dot amber"/></span><strong>{counts.active}</strong><small>Uploaded or processing</small></div><div className="admin-stat-card"><span>Completed <i className="dot teal"/></span><strong>{counts.completed}</strong><small>Processed materials</small></div><div className="admin-stat-card"><span>Failed <i className="dot red"/></span><strong>{counts.failed}</strong><small>Needs review</small></div></div>
+    <div className="admin-filter-bar"><label className="admin-search"><Search size={16}/><input placeholder="Search file or course…" value={query} onChange={(e) => setQuery(e.target.value)}/></label><div className="admin-filter-chips">{[['active','In progress'],['failed','Failed'],['completed','Completed'],['all','All']].map(([value,label]) => <button key={value} className={filter === value ? 'selected' : ''} onClick={() => setFilter(value)}>{label}</button>)}</div></div>
+    {error && <div className="admin-alert"><AlertCircle size={17}/>{error}</div>}{loading ? <div className="admin-loading"><LoadingSpinner size={28}/>Loading processing records…</div> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Material</th><th>Course</th><th>Last updated</th><th>Status</th><th>Pipeline</th></tr></thead><tbody>{rows.map((item) => <tr key={item.id}><td><Link to={`/materials/${encodeURIComponent(item.id)}`} className="admin-material-link">{item.original_filename}</Link></td><td><Link to={`/courses/${encodeURIComponent(item.course_code)}`} className="admin-code-link">{item.course_code}</Link></td><td>{item.updated_at ? new Date(item.updated_at).toLocaleString() : '—'}</td><td><StatusBadge status={item.processing_status} errorMsg={item.error_message}/></td><td><Link className="admin-text-action" to={`/materials/${encodeURIComponent(item.id)}`}><Activity size={15}/> Inspect stages</Link></td></tr>)}</tbody></table>{rows.length === 0 && <div className="admin-empty">No materials in this processing view.</div>}</div>}
+  </div>;
+};
