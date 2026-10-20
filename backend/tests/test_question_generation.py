@@ -1,7 +1,9 @@
 """Focused tests for retrieval-grounded question generation and validation."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from io import BytesIO
+from urllib.error import HTTPError
+from unittest.mock import MagicMock, call, patch
 
 from app.models.course import CourseInDB, Topic, Unit
 from app.models.embedding import VectorSearchResponse, VectorSearchResult, VectorSearchTarget
@@ -9,6 +11,7 @@ from app.models.generated_question import GeneratedQuestionInDB, QuestionGenerat
 from app.repositories.chunk_repository import AtlasVectorSearchUnavailableError, ChunkRepository
 from app.services.question_generation_service import (
     EmptyRetrievalContextError,
+    GeminiProviderError,
     InvalidGeneratedOutputError,
     QuestionGenerationService,
 )
@@ -81,6 +84,23 @@ class QuestionGenerationServiceTests(unittest.TestCase):
                 require_atlas=True,
             )
         collection.aggregate.assert_not_called()
+
+    @patch("app.services.question_generation_service.time.sleep")
+    @patch("app.services.question_generation_service.urlopen")
+    @patch("app.services.question_generation_service.get_settings")
+    def test_gemini_503_is_retried_with_bounded_backoff(self, get_settings, urlopen, sleep):
+        get_settings.return_value = MagicMock(GEMINI_API_KEY="test-key", GEMINI_MODEL_NAME="gemini-test")
+        urlopen.side_effect = [
+            HTTPError("https://example.test", 503, "Unavailable", {}, BytesIO(b"{}")),
+            HTTPError("https://example.test", 503, "Unavailable", {}, BytesIO(b"{}")),
+            HTTPError("https://example.test", 503, "Unavailable", {}, BytesIO(b"{}")),
+        ]
+
+        with self.assertRaisesRegex(GeminiProviderError, "temporarily unavailable after retrying"):
+            QuestionGenerationService._call_gemini("prompt", "case scenario")
+
+        self.assertEqual(urlopen.call_count, 3)
+        sleep.assert_has_calls([call(1), call(2)])
 
     @patch("app.services.question_generation_service.GeneratedQuestionRepository.save_generated_questions_batch")
     @patch("app.services.question_generation_service.GeneratedQuestionRepository.get_generated_questions_by_course", return_value=[])

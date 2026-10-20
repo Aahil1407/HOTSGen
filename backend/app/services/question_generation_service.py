@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import time
 from typing import Any, Dict, List, Set
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -104,18 +105,31 @@ class QuestionGenerationService:
             headers={"Content-Type": "application/json", "x-goog-api-key": settings.GEMINI_API_KEY},
             method="POST",
         )
-        try:
-            with urlopen(request, timeout=90) as response:
-                response_data = json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            logger.warning("Gemini request failed with HTTP status %s", exc.code)
-            raise GeminiProviderError(f"Gemini API returned HTTP {exc.code}.") from exc
-        except (URLError, TimeoutError) as exc:
-            logger.warning("Gemini request could not reach the provider: %s", type(exc).__name__)
-            raise GeminiProviderError("Could not reach Gemini. Check the backend network connection and retry.") from exc
-        except Exception as exc:
-            logger.exception("Unexpected Gemini API failure")
-            raise GeminiProviderError("Gemini returned an unreadable response.") from exc
+        response_data = None
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                with urlopen(request, timeout=90) as response:
+                    response_data = json.loads(response.read().decode("utf-8"))
+                break
+            except HTTPError as exc:
+                if exc.code == 503 and attempt < max_attempts - 1:
+                    delay = 2 ** attempt
+                    logger.warning("Gemini is temporarily unavailable (HTTP 503); retrying in %s seconds", delay)
+                    time.sleep(delay)
+                    continue
+                logger.warning("Gemini request failed with HTTP status %s after %s attempt(s)", exc.code, attempt + 1)
+                if exc.code == 503:
+                    message = "Gemini is temporarily unavailable after retrying. Please wait a minute and try again."
+                else:
+                    message = f"Gemini API returned HTTP {exc.code}."
+                raise GeminiProviderError(message) from exc
+            except (URLError, TimeoutError) as exc:
+                logger.warning("Gemini request could not reach the provider: %s", type(exc).__name__)
+                raise GeminiProviderError("Could not reach Gemini. Check the backend network connection and retry.") from exc
+            except Exception as exc:
+                logger.exception("Unexpected Gemini API failure")
+                raise GeminiProviderError("Gemini returned an unreadable response.") from exc
 
         try:
             parts = response_data["candidates"][0]["content"]["parts"]
